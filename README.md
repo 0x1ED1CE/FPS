@@ -1,4 +1,5 @@
 # Fast Physics Solver
+![LICENSE](https://img.shields.io/badge/LICENSE-MIT-green.svg)
 
 FPS is a lite 3D physics engine intended to be used for game development. It is NOT physically accurate to real-life scenarios and makes heavy approximations.
 
