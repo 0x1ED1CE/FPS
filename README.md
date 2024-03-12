@@ -1,9 +1,14 @@
 # Fast Physics Solver
 ![LICENSE](https://img.shields.io/badge/LICENSE-MIT-green.svg)
 
-FPS is a lite 3D physics engine intended to be used for game development. It is NOT physically accurate to real-life scenarios and makes heavy approximations.
+FPS is a lite 3D physics engine intended to be used for game development. It is NOT physically accurate and makes heavy approximations.
 
-The engine uses polygonal clipping for both collision detection as well as calculating the contact point and separation vector.
+This engine uses polygonal clipping for both collision detection and calculating the collision response. It does not rely on GJK/EPA or SAT.
+
+## TODO:
+- Rewrite it in C99. Originally written in Lua to be used with [LÖVE](https://https://github.com/love2d/love)
+- Add support for primitive convex shapes (sphere, cylinder, etc)
+- Constraints?
 
 ## License
 This software is free to use. You can modify it and redistribute it under the terms of the 
