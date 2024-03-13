@@ -11,6 +11,7 @@ This engine uses polygonal clipping for both collision detection and collision r
 <img src="/screenshots/SPMvtvh.gif?raw=true">
 
 ## TODO:
+- Make it more stable. It's still unusable in its current state.
 - Rewrite it in C99. Originally written in Lua to be used with [LÖVE](https://github.com/love2d/love)
 - Add support for primitive convex shapes (sphere, cylinder, etc)
 - Constraints?
