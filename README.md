@@ -12,6 +12,7 @@ This engine uses clipping for both collision detection and collision response. I
 
 ## TODO:
 - Make it more stable. It's still unusable in its current state.
+- Add spatial partitions. This is suppose to be fast after all!
 - Rewrite it in C99. Originally written in Lua to be used with [LÖVE](https://github.com/love2d/love)
 - Add support for primitive convex shapes (sphere, cylinder, etc)
 - Constraints?
