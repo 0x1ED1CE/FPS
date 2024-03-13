@@ -47,7 +47,7 @@ local function unit(x,y,z)
 	local m=sqrt(x^2+y^2+z^2)
 	
 	if m==0 then
-		return x,y,z
+		return 0,0,0
 	end
 	
 	return x/m,y/m,z/m

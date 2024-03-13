@@ -26,7 +26,7 @@ SOFTWARE.
 
 --[[
 This algorithm is not SAT! It uses a different approach by clipping the 
-colliding geometries and determines the collision based on what's left from 
+overlapping geometries and determines the collision based on what's left from 
 the clipping. I don't know a proper name for this algorithm as I came up with 
 it myself.
 ]]
@@ -40,6 +40,7 @@ local matrix4 = fps.matrix4
 local math_huge = math.huge
 local math_sqrt = math.sqrt
 local math_abs  = math.abs
+local math_max  = math.max
 
 local table_insert = table.insert
 local table_remove = table.remove
@@ -64,11 +65,12 @@ local matrix4_multiply_vector3 = matrix4.multiply_vector3
 local function plane_intersection(
 	px,py,pz,    --Plane origin
 	pnx,pny,pnz, --Plane normal
-	lx,ly,lz,    --Edge origin
-	lnx,lny,lnz  --Edge normal
+	lx,ly,lz,    --Line origin
+	lnx,lny,lnz  --Line normal
 )
+	--Return if line is perpendicular to plane
 	if vector3_dot(pnx,pny,pnz,lnx,lny,lnz)==0 then
-		return
+		return lx,ly,lz
 	end
 	
 	local t=(
@@ -96,13 +98,14 @@ local function clip_triangle(
 	local b_dot = vector3_dot(bex,bey,bez,pnx,pny,pnz)
 	local c_dot = vector3_dot(cex,cey,cez,pnx,pny,pnz)
 	
+	--Get vertex behind plane to use as origin
 	if a_dot<0 then
-		rx,ry,rz=ax,ay,az --Clip towards this point
+		rx,ry,rz=ax,ay,az
 	elseif b_dot<0 then
 		rx,ry,rz=bx,by,bz
 	elseif c_dot<0 then
 		rx,ry,rz=cx,cy,cz
-	else --All vertexes are behind the plane so no clipping needed
+	else --All vertexes are in front of the plane so no clipping is done
 		return
 	end
 	
@@ -134,6 +137,53 @@ local function clip_triangle(
 	end
 	
 	return ax,ay,az,bx,by,bz,cx,cy,cz
+end
+
+local function clip_convex(vertexes_a,vertexes_b,clipped)
+	for i=1,#vertexes_b do
+		clipped[#clipped+1]=vertexes_b[i]
+	end
+	
+	local clip_limit=#clipped-#vertexes_b+1
+	
+	for a=#vertexes_a,1,-9 do
+		local aax,aay,aaz = vertexes_a[a-8],vertexes_a[a-7],vertexes_a[a-6]
+		local abx,aby,abz = vertexes_a[a-5],vertexes_a[a-4],vertexes_a[a-3]
+		local acx,acy,acz = vertexes_a[a-2],vertexes_a[a-1],vertexes_a[a]
+		
+		local px = (aax+abx+acx)/3
+		local py = (aay+aby+acy)/3
+		local pz = (aaz+abz+acz)/3
+		
+		local pnx,pny,pnz = vector3_unit(vector3_cross(
+			abx-aax,aby-aay,abz-aaz,
+			acx-aax,acy-aay,acz-aaz
+		))
+		
+		for b=#clipped,clip_limit,-9 do
+			local
+			bax,bay,baz,
+			bbx,bby,bbz,
+			bcx,bcy,bcz
+			=clip_triangle(
+				px,py,pz,
+				pnx,pny,pnz,
+				clipped[b-8],clipped[b-7],clipped[b-6],
+				clipped[b-5],clipped[b-4],clipped[b-3],
+				clipped[b-2],clipped[b-1],clipped[b]
+			)
+			
+			if bax then
+				clipped[b-8],clipped[b-7],clipped[b-6] = bax,bay,baz
+				clipped[b-5],clipped[b-4],clipped[b-3] = bbx,bby,bbz
+				clipped[b-2],clipped[b-1],clipped[b]   = bcx,bcy,bcz
+			else --Discard vertexes outside of convex shape
+				for i=0,8 do
+					table_remove(clipped,b-i)
+				end
+			end
+		end
+	end
 end
 
 local function pull_vertexes(collider,vertexes)
@@ -229,53 +279,6 @@ local function pull_vertexes(collider,vertexes)
 	end
 end
 
-local function clip_convex(vertexes_a,vertexes_b,clipped)
-	for i=1,#vertexes_b do
-		clipped[#clipped+1]=vertexes_b[i]
-	end
-	
-	local clip_limit=#clipped-#vertexes_b+1
-	
-	for a=#vertexes_a,1,-9 do
-		local aax,aay,aaz = vertexes_a[a-8],vertexes_a[a-7],vertexes_a[a-6]
-		local abx,aby,abz = vertexes_a[a-5],vertexes_a[a-4],vertexes_a[a-3]
-		local acx,acy,acz = vertexes_a[a-2],vertexes_a[a-1],vertexes_a[a]
-		
-		local px = (aax+abx+acx)/3
-		local py = (aay+aby+acy)/3
-		local pz = (aaz+abz+acz)/3
-		
-		local pnx,pny,pnz = vector3_unit(vector3_cross(
-			abx-aax,aby-aay,abz-aaz,
-			acx-aax,acy-aay,acz-aaz
-		))
-		
-		for b=#clipped,clip_limit,-9 do
-			local
-			bax,bay,baz,
-			bbx,bby,bbz,
-			bcx,bcy,bcz
-			=clip_triangle(
-				px,py,pz,
-				pnx,pny,pnz,
-				clipped[b-8],clipped[b-7],clipped[b-6],
-				clipped[b-5],clipped[b-4],clipped[b-3],
-				clipped[b-2],clipped[b-1],clipped[b]
-			)
-			
-			if bax then
-				clipped[b-8],clipped[b-7],clipped[b-6] = bax,bay,baz
-				clipped[b-5],clipped[b-4],clipped[b-3] = bbx,bby,bbz
-				clipped[b-2],clipped[b-1],clipped[b]   = bcx,bcy,bcz
-			else --Remove vertexes outside of convex shape
-				for i=0,8 do
-					table_remove(clipped,b-i)
-				end
-			end
-		end
-	end
-end
-
 -------------------------------------------------------------------------------
 
 local vertexes_a = {}
@@ -290,69 +293,98 @@ return function(collider_a,collider_b)
 	pull_vertexes(collider_a,vertexes_a)
 	pull_vertexes(collider_b,vertexes_b)
 	
-	clip_convex(vertexes_a,vertexes_b,clipped)
-	clip_convex(vertexes_b,vertexes_a,clipped)
+	clip_convex(
+		vertexes_b,
+		vertexes_a,
+		clipped
+	)
 	
-	local clip_count = #clipped/3
+	--[[
+	if #clipped==0 then
+		clip_convex(
+			vertexes_b,
+			vertexes_a,
+			clipped
+		)
+	end
+	]]
 	
-	local cx,cy,cz       = 0,0,0
-	local sx,sy,sz,sd    = 0,0,0,0
-	local fx,fy,fz,fd,fi = 0,0,0,0,0    --Furthest vertex
-	local nx,ny,nz,nd = 0,0,0,math.huge --Nearest vertex
-	local acx,acy,acz = collider_a:get_world_position()
+	local cx,cy,cz    = 0,0,0   --Contact point
+	local sx,sy,sz,sd = 0,0,0,0 --Separation normal
 	
-	for i=1,#clipped,3 do
-		cx = cx+clipped[i]
-		cy = cy+clipped[i+1]
-		cz = cz+clipped[i+2]
+	local total_weight = 0
+	
+	--Approximate contact point and separation normal
+	for i=1,#clipped,9 do
+		local aax,aay,aaz = clipped[i],clipped[i+1],clipped[i+2]
+		local abx,aby,abz = clipped[i+3],clipped[i+4],clipped[i+5]
+		local acx,acy,acz = clipped[i+6],clipped[i+7],clipped[i+8]
 		
-		--Find furthest vertex from collider
-		local distance = vector3_magnitude(
-			acx-clipped[i],
-			acy-clipped[i+1],
-			acz-clipped[i+2]
+		local weight = vector3_magnitude(
+			aax-abx,aay-aby,aaz-abz
+		)*vector3_magnitude(
+			aax-acx,aay-acy,aaz-acz
+		)*vector3_magnitude(
+			abx-acx,aby-acy,abz-acz
 		)
 		
-		if distance>fd then
-			fx = clipped[i]
-			fy = clipped[i+1]
-			fz = clipped[i+2]
-			fd = distance
-			fi = i
-		end
+		total_weight = total_weight + weight
+		
+		local px = (aax+abx+acx)
+		local py = (aay+aby+acy)
+		local pz = (aaz+abz+acz)
+		
+		cx = cx+px
+		cy = cy+py
+		cz = cz+pz
+		
+		local pnx,pny,pnz = vector3_unit(vector3_cross(
+			abx-aax,aby-aay,abz-aaz,
+			acx-aax,acy-aay,acz-aaz
+		))
+		
+		sx = sx+pnx*weight
+		sy = sy+pny*weight
+		sz = sz+pnz*weight
 	end
 	
-	for i=1,#clipped,3 do
-		--Find nearest vertex from furthest vertex
-		if i~=fi then
-			local distance = vector3_magnitude(
-				fx-clipped[i],
-				fy-clipped[i+1],
-				fz-clipped[i+2]
-			)
-			
-			if distance>0.0001 and distance<nd then
-				nx = clipped[i]
-				ny = clipped[i+1]
-				nz = clipped[i+2]
-				nd = distance
-			end
-		end
-	end
+	total_weight=math_max(total_weight,1)
+	
+	local clip_count = math_max(#clipped/3,1)
 	
 	cx = cx/clip_count
 	cy = cy/clip_count
 	cz = cz/clip_count
 	
-	sx = nx-fx
-	sy = ny-fy
-	sz = nz-fz
+	sx,sy,sz=vector3_unit(
+		sx/total_weight,
+		sy/total_weight,
+		sz/total_weight
+	)
 	
-	sd = vector3_magnitude(sx,sy,sz)
+	local fx,fy,fz,fd = 0,0,0,0
+	local nx,ny,nz,nd = 0,0,0,math.huge
 	
-	return 
-		cx,cy,cz,
-		-sx/sd,-sy/sd,-sz/sd,sd,
-		clipped
+	--Compute separation distance
+	for i=1,#clipped,3 do
+		local px,py,pz = clipped[i],clipped[i+1],clipped[i+2]
+		
+		local pd = math_abs(vector3_dot(sx,sy,sz,px,py,pz))
+		
+		if pd>fd then
+			fx,fy,fz,fd = px,py,pz,pd
+		end
+		
+		if pd<nd then
+			nx,ny,nz,nd = px,py,pz,pd
+		end
+	end
+	
+	sd = math_abs(vector3_dot(
+		fx-nx,fy-ny,fz-nz,
+		sx,sy,sz
+	))
+	
+	return cx,cy,cz,sx,sy,sz,#clipped and sd or 0
 end
 end

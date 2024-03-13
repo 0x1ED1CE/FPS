@@ -43,8 +43,9 @@ local vector3_cross = vector3.cross
 local vector3_dot   = vector3.dot
 local vector3_unit  = vector3.unit
 
-local matrix3_inverse  = matrix3.inverse
-local matrix3_multiply = matrix3.multiply
+local matrix3_inverse          = matrix3.inverse
+local matrix3_multiply         = matrix3.multiply
+local matrix3_multiply_vector3 = matrix3.multiply_vector3
 
 local matrix4_inverse  = matrix4.inverse
 local matrix4_multiply = matrix4.multiply
@@ -135,7 +136,11 @@ function body.set_position(body_,x,y,z)
 	body_:update_boundary()
 end
 
-function body.set_look(body_,front_x,front_y,front_z,up_x,up_y,up_z)
+function body.set_look(
+	body_,
+	front_x,front_y,front_z,
+	up_x,up_y,up_z
+)
 	local t=body_.transform
 	
 	up_x,up_y,up_z=up_x or 0,up_y or 1,up_z or 0
@@ -217,9 +222,9 @@ function body.apply_linear_impulse(body_,fx,fy,fz)
 	local velocity=body_.velocity
 	local inverse_mass=body_.mass^-1
 	
-	velocity[1]=velocity[1]+fx*inverse_mass
-	velocity[2]=velocity[2]+fy*inverse_mass
-	velocity[3]=velocity[3]+fz*inverse_mass
+	velocity[1]=(velocity[1]+fx*inverse_mass)*0.99
+	velocity[2]=(velocity[2]+fy*inverse_mass)*0.99
+	velocity[3]=(velocity[3]+fz*inverse_mass)*0.99
 end
 
 function body.apply_angular_impulse(body_,tx,ty,tz)
@@ -228,11 +233,19 @@ function body.apply_angular_impulse(body_,tx,ty,tz)
 	end
 	
 	local angular_velocity=body_.angular_velocity
-	local iitx,iity,iitz=body_:get_inverse_inertia()
+	local iit=body_.inverse_inertia_tensor
+	--local iitx,iity,iitz=body_:get_inverse_inertia()
 	
-	angular_velocity[1]=angular_velocity[1]+tx*iitx
-	angular_velocity[2]=angular_velocity[2]+ty*iity
-	angular_velocity[3]=angular_velocity[3]+tz*iitz
+	local ix,iy,iz=matrix3_multiply_vector3(
+		iit[1],iit[2],iit[3],
+		iit[4],iit[5],iit[6],
+		iit[7],iit[8],iit[9],
+		tx,ty,tz
+	)
+	
+	angular_velocity[1]=(angular_velocity[1]+ix)*0.9 --Damping
+	angular_velocity[2]=(angular_velocity[2]+iy)*0.9
+	angular_velocity[3]=(angular_velocity[3]+iz)*0.9
 end
 
 function body.get_static(body_)
@@ -583,7 +596,7 @@ function body.test_collision(body_a,body_b,solvers)
 		for b=1,#body_b.colliders do
 			local collider_b=body_b.colliders[b]
 			
-			local cx,cy,cz,sx,sy,sz,sd,clipped=ngc(
+			local cx,cy,cz,sx,sy,sz,sd=ngc(
 				collider_a,
 				collider_b
 			)
@@ -591,24 +604,6 @@ function body.test_collision(body_a,body_b,solvers)
 			if sd>0 then
 				body_a.colliding = true
 				body_b.colliding = true
-				
-				for i=1,#clipped,3 do
-					local ci=(i-1)/3+1
-					if contact_spheres[ci] then
-						contact_spheres[ci].body:set_position(
-							clipped[i],clipped[i+1],clipped[i+2]
-						)
-						contact_spheres[ci].color:set(0,0,1)
-					end
-				end
-				
-				--print(("%f\n%f\n%f\n%f\n"):format(sx,sy,sz,sd))
-				
-				approximate_contact_sphere.body:set_position(cx,cy,cz)
-				
-				separation_arrow.body:set_position(cx-sx/2,cy-sy/2,cz-sz/2)
-				
-				separation_arrow.body:set_look(-sx,-sy,-sz)
 				
 				for _,solver in ipairs(solvers) do
 					solver(
