@@ -5,7 +5,7 @@
 
 FPS is a lite 3D physics engine intended to be used for game development. It is NOT physically accurate and makes heavy approximations.
 
-This engine uses polygonal clipping for both collision detection and collision response. It does not rely on GJK/EPA or SAT.
+This engine uses clipping for both collision detection and collision response. It does not rely on GJK/EPA or SAT.
 
 ## Screenshots
 <img src="/screenshots/SPMvtvh.gif?raw=true">
