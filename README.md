@@ -5,6 +5,9 @@ FPS is a lite 3D physics engine intended to be used for game development. It is 
 
 This engine uses polygonal clipping for both collision detection and collision response. It does not rely on GJK/EPA or SAT.
 
+## Screenshots
+<img src="/screenshots/SPMvtvh.gif?raw=true">
+
 ## TODO:
 - Rewrite it in C99. Originally written in Lua to be used with [LÖVE](https://github.com/love2d/love)
 - Add support for primitive convex shapes (sphere, cylinder, etc)
