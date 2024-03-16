@@ -129,6 +129,15 @@ local function translate(
 		a41,a42,a43,a44
 end
 
+local function position(
+	a11,a12,a13,a14,
+	a21,a22,a23,a24,
+	a31,a32,a33,a34,
+	a41,a42,a43,a44
+)
+	return a14,a24,a34
+end
+
 local function from_euler(
 	x,y,z
 )
@@ -188,6 +197,7 @@ matrix4.inverse          = inverse
 matrix4.multiply         = multiply
 matrix4.multiply_vector3 = multiply_vector3
 matrix4.translate        = translate
+matrix4.position         = position
 matrix4.from_euler       = from_euler
 matrix4.from_axis        = from_axis
 

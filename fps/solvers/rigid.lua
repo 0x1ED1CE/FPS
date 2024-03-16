@@ -75,14 +75,14 @@ return function(
 	
 	--Seperate bodies
 	if not body_a.static then
-		local depth_ratio_a = depth*0.5 --Makes it springy
+		local depth_ratio_a = depth*(ima/tim)*0.5 --Makes it springy
 		
 		at[4]  = at[4]-normal_x*depth_ratio_a
 		at[8]  = at[8]-normal_y*depth_ratio_a
 		at[12] = at[12]-normal_z*depth_ratio_a
 	end
 	if not body_b.static then
-		local depth_ratio_b = depth*0.5
+		local depth_ratio_b = depth*(ima/tim)*0.5
 		
 		bt[4]  = bt[4]+normal_x*depth_ratio_b
 		bt[8]  = bt[8]+normal_y*depth_ratio_b

@@ -243,9 +243,9 @@ function body.apply_angular_impulse(body_,tx,ty,tz)
 		tx,ty,tz
 	)
 	
-	angular_velocity[1]=(angular_velocity[1]+ix)*0.9
-	angular_velocity[2]=(angular_velocity[2]+iy)*0.9
-	angular_velocity[3]=(angular_velocity[3]+iz)*0.9
+	angular_velocity[1]=angular_velocity[1]+ix
+	angular_velocity[2]=angular_velocity[2]+iy
+	angular_velocity[3]=angular_velocity[3]+iz
 end
 
 function body.get_static(body_)
@@ -659,16 +659,37 @@ function body.step(body_,dt)
 		local avy = angular_velocity[2]*dt
 		local avz = angular_velocity[3]*dt
 		
+		local x,y,z = t14,t24,t34 --Store global coordinates to rotate in world aligned axis
+		
+		local
+		r11,r12,r13,r14,
+		r21,r22,r23,r24,
+		r31,r32,r33,r34,
+		r41,r42,r43,r44
+		=matrix4.from_euler(
+			avx,avy,avz
+		)
+		
+		t11,t12,t13,t14,
+		t21,t22,t23,t24,
+		t31,t32,t33,t34,
+		t41,t42,t43,t44
+		=matrix4.multiply(
+			r11,r12,r13,r14,
+			r21,r22,r23,r24,
+			r31,r32,r33,r34,
+			r41,r42,r43,r44,
+			t11,t12,t13,0,
+			t21,t22,t23,0,
+			t31,t32,t33,0,
+			t41,t42,t43,t44
+		)
+		
 		body_:set_transform(
-			matrix4.multiply(
-				t11,t12,t13,t14,
-				t21,t22,t23,t24,
-				t31,t32,t33,t34,
-				t41,t42,t43,t44,
-				matrix4.from_euler(
-					avx,avy,avz
-				)
-			)
+			t11,t12,t13,x,
+			t21,t22,t23,y,
+			t31,t32,t33,z,
+			t41,t42,t43,t44
 		)
 	end
 	
