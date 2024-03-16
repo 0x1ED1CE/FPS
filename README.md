@@ -11,7 +11,7 @@ This engine uses clipping for both collision detection and collision response. I
 <img src="/screenshots/0OBoqeb.gif?raw=true">
 
 ## TODO:
-- Make it more stable. It's still unusable in its current state.
+- Add friction and dampening
 - Add spatial partitions. This is suppose to be fast after all!
 - Rewrite it in C99. Originally written in Lua to be used with [LÖVE](https://github.com/love2d/love)
 - Constraints?
