@@ -82,7 +82,6 @@ function body.new()
 			0,1,0,
 			0,0,1
 		},
-		inverse_inertia        = {0,0,0},
 		colliders              = {}
 	},body)
 end
@@ -134,36 +133,6 @@ function body.set_position(body_,x,y,z)
 	local t=body_.transform
 	
 	t[4],t[8],t[12]=x,y,z
-	
-	body_:update_boundary()
-end
-
-function body.set_look(
-	body_,
-	front_x,front_y,front_z,
-	up_x,up_y,up_z
-)
-	local t=body_.transform
-	
-	up_x,up_y,up_z=up_x or 0,up_y or 1,up_z or 0
-	front_x,front_y,front_z=-front_x,-front_y,-front_z
-	
-	local right_x = up_y*front_z-up_z*front_y
-	local right_y = up_z*front_x-up_x*front_z
-	local right_z = up_x*front_y-up_y*front_x
-	local right_m = math_sqrt(right_x^2+right_y^2+right_z^2)
-	
-	right_x = right_x/right_m
-	right_y = right_y/right_m
-	right_z = right_z/right_m
-	
-	local top_x = front_y*right_z-front_z*right_y
-	local top_y = front_z*right_x-front_x*right_z
-	local top_z = front_x*right_y-front_y*right_x
-	
-	t[1],t[2],t[3]   = right_x,top_x,front_x
-	t[5],t[6],t[7]   = right_y,top_y,front_y
-	t[9],t[10],t[11] = right_z,top_z,front_z
 	
 	body_:update_boundary()
 end
@@ -224,9 +193,9 @@ function body.apply_linear_impulse(body_,fx,fy,fz)
 	local velocity=body_.velocity
 	local inverse_mass=body_.mass^-1
 	
-	velocity[1]=velocity[1]+fx*inverse_mass
-	velocity[2]=velocity[2]+fy*inverse_mass
-	velocity[3]=velocity[3]+fz*inverse_mass
+	velocity[1]=(velocity[1]+fx*inverse_mass)*0.99
+	velocity[2]=(velocity[2]+fy*inverse_mass)*0.99
+	velocity[3]=(velocity[3]+fz*inverse_mass)*0.99
 end
 
 function body.apply_angular_impulse(body_,tx,ty,tz)
@@ -243,9 +212,9 @@ function body.apply_angular_impulse(body_,tx,ty,tz)
 		tx,ty,tz
 	)
 	
-	angular_velocity[1]=angular_velocity[1]+ix
-	angular_velocity[2]=angular_velocity[2]+iy
-	angular_velocity[3]=angular_velocity[3]+iz
+	angular_velocity[1]=(angular_velocity[1]+ix)*0.99
+	angular_velocity[2]=(angular_velocity[2]+iy)*0.99
+	angular_velocity[3]=(angular_velocity[3]+iz)*0.99
 end
 
 function body.get_static(body_)
@@ -303,12 +272,6 @@ function body.get_inverse_inertia_tensor(body_)
 		iit[7],iit[8],iit[9]
 end
 
-function body.get_inverse_inertia(body_)
-	local ii=body_.inverse_inertia
-	
-	return ii[1],ii[2],ii[3]
-end
-
 function body.add_collider(body_,collider_)
 	assert(
 		collider_.body==nil,
@@ -345,15 +308,10 @@ function body.remove_collider(body_,collider_)
 end
 
 function body.update_mass(body_)
-	local colliders=body_.colliders
-	local sc=#colliders
-	
 	local total_mass=0
 	local cx,cy,cz=0,0,0
 	
-	for i=1,sc do
-		local collider_=colliders[i]
-		
+	for _,collider_ in ipairs(body_.colliders) do
 		local ox,oy,oz=collider_:get_position_offset()
 		local collider_mass=collider_:get_mass()
 		
@@ -375,14 +333,10 @@ function body.update_boundary(body_)
 	local bb = body_.boundary
 	local bt = body_.transform
 	
-	local colliders=body_.colliders
-	
 	local min_x,min_y,min_z
 	local max_x,max_y,max_z	
 	
-	for i=1,#colliders do
-		local collider_=colliders[i]
-		
+	for _,collider_ in ipairs(body_.colliders) do
 		local ct   = collider_.transform
 		local size = collider_.size
 		
@@ -428,26 +382,16 @@ function body.update_boundary(body_)
 end
 
 function body.update_inverse_inertia(body_)
-	local inverse_inertia=body_.inverse_inertia
-	
-	local colliders=body_.colliders
-	
 	local iix,iiy,iiz=0,0,0
 	
-	for i=1,#colliders do --Treats each mass as a cube
-		local collider_=colliders[i]
-		
+	for _,collider_ in ipairs(body_.colliders) do
 		local cim=collider_:get_mass()^-1
 		local sx,sy,sz=collider_:get_size()
 		
-		iix=iix+(12*cim)/(sx^2+sy^2)
+		iix=iix+(12*cim)/(sx^2+sy^2) --Treats each mass as a cube
 		iiy=iiy+(12*cim)/(sx^2+sz^2)
 		iiz=iiz+(12*cim)/(sx^2+sy^2)
 	end
-	
-	inverse_inertia[1]=iix
-	inverse_inertia[2]=iiy
-	inverse_inertia[3]=iiz
 	
 	local iit=body_.inverse_inertia_tensor
 	
@@ -527,9 +471,7 @@ function body.raycast(body_,x,y,z,dx,dy,dz)
 	local nearest_collider,m
 	local px,py,pz,snx,sny,snz
 	
-	for i=1,#body_.colliders do
-		local collider_=body_.colliders[i]
-		
+	for _,collider_ in ipairs(body_.colliders) do
 		local cx,cy,cz,nx,ny,nz,l=collider_:raycast(
 			x,y,z,
 			dx,dy,dz,
@@ -590,12 +532,8 @@ function body.resolve_collision(body_a,body_b,dt,solvers)
 		return
 	end
 	
-	for a=1,#body_a.colliders do
-		local collider_a=body_a.colliders[a]
-		
-		for b=1,#body_b.colliders do
-			local collider_b=body_b.colliders[b]
-			
+	for _,collider_a in ipairs(body_a.colliders) do
+		for _,collider_b in ipairs(body_b.colliders) do
 			local cx,cy,cz,sx,sy,sz,sd=ngc(
 				collider_a,
 				collider_b
@@ -610,13 +548,9 @@ function body.resolve_collision(body_a,body_b,dt,solvers)
 						body_a,body_b,
 						collider_a,collider_b,
 						cx,cy,cz,
-						sx,sy,sz,sd,
-						dt
+						sx,sy,sz,sd
 					)
 				end
-			
-				body_a:update_boundary()
-				body_b:update_boundary()
 			end
 		end
 	end
@@ -655,11 +589,7 @@ function body.step(body_,dt)
 			velocity[3]*dt
 		)
 		
-		local avx = angular_velocity[1]*dt
-		local avy = angular_velocity[2]*dt
-		local avz = angular_velocity[3]*dt
-		
-		local x,y,z = t14,t24,t34 --Store global coordinates to rotate in world aligned axis
+		local x,y,z = t14,t24,t34
 		
 		local
 		r11,r12,r13,r14,
@@ -667,7 +597,9 @@ function body.step(body_,dt)
 		r31,r32,r33,r34,
 		r41,r42,r43,r44
 		=matrix4.from_euler(
-			avx,avy,avz
+			angular_velocity[1]*dt,
+			angular_velocity[2]*dt,
+			angular_velocity[3]*dt
 		)
 		
 		t11,t12,t13,t14,

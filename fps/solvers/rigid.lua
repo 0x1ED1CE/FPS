@@ -44,8 +44,7 @@ return function(
 	body_a,body_b,
 	collider_a,collider_b,
 	collision_x,collision_y,collision_z,
-	normal_x,normal_y,normal_z,depth,
-	dt
+	normal_x,normal_y,normal_z,depth
 )
 	local av = body_a.velocity
 	local bv = body_b.velocity
@@ -75,14 +74,14 @@ return function(
 	
 	--Seperate bodies
 	if not body_a.static then
-		local depth_ratio_a = depth*(ima/tim)*0.5 --Makes it springy
+		local depth_ratio_a = depth*(ima/tim)*0.5
 		
 		at[4]  = at[4]-normal_x*depth_ratio_a
 		at[8]  = at[8]-normal_y*depth_ratio_a
 		at[12] = at[12]-normal_z*depth_ratio_a
 	end
 	if not body_b.static then
-		local depth_ratio_b = depth*(ima/tim)*0.5
+		local depth_ratio_b = depth*(imb/tim)*0.5
 		
 		bt[4]  = bt[4]+normal_x*depth_ratio_b
 		bt[8]  = bt[8]+normal_y*depth_ratio_b

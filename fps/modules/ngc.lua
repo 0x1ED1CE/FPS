@@ -62,11 +62,11 @@ local matrix4_multiply_vector3 = matrix4.multiply_vector3
 
 -------------------------------------------------------------------------------
 
-local function plane_intersection(
+local function clip_edge(
 	px,py,pz,    --Plane origin
 	pnx,pny,pnz, --Plane normal
-	lx,ly,lz,    --Line origin
-	lnx,lny,lnz  --Line normal
+	lx,ly,lz,    --Edge origin
+	lnx,lny,lnz  --Edge normal
 )
 	--Return if line is perpendicular to plane
 	if vector3_dot(pnx,pny,pnz,lnx,lny,lnz)==0 then
@@ -110,7 +110,7 @@ local function clip_triangle(
 	end
 	
 	if a_dot>0 then
-		ax,ay,az=plane_intersection(
+		ax,ay,az=clip_edge(
 			px,py,pz,
 			pnx,pny,pnz,
 			rx,ry,rz,
@@ -119,7 +119,7 @@ local function clip_triangle(
 	end
 	
 	if b_dot>0 then
-		bx,by,bz=plane_intersection(
+		bx,by,bz=clip_edge(
 			px,py,pz,
 			pnx,pny,pnz,
 			rx,ry,rz,
@@ -128,7 +128,7 @@ local function clip_triangle(
 	end
 	
 	if c_dot>0 then
-		cx,cy,cz=plane_intersection(
+		cx,cy,cz=clip_edge(
 			px,py,pz,
 			pnx,pny,pnz,
 			rx,ry,rz,
@@ -281,6 +281,7 @@ end
 
 -------------------------------------------------------------------------------
 
+local prev_collider
 local vertexes_a = {}
 local vertexes_b = {}
 local clipped    = {}
@@ -290,8 +291,19 @@ return function(collider_a,collider_b)
 		clipped[i]=nil
 	end
 	
-	pull_vertexes(collider_a,vertexes_a)
-	pull_vertexes(collider_b,vertexes_b)
+	if collider_a~=prev_collider then --Cache vertexes, saves computing time
+		pull_vertexes(
+			collider_a,
+			vertexes_a
+		)
+		
+		prev_collider = collider_a
+	end
+	
+	pull_vertexes(
+		collider_b,
+		vertexes_b
+	)
 	
 	clip_convex(
 		vertexes_b,
@@ -303,10 +315,11 @@ return function(collider_a,collider_b)
 		return 0,0,0,0,0,0,0
 	end
 	
+	local clip_count   = #clipped/3
+	local total_weight = 0
+	
 	local cx,cy,cz    = 0,0,0   --Contact point
 	local sx,sy,sz,sd = 0,0,0,0 --Separation normal
-	
-	local total_weight = 0
 	
 	--Approximate contact point and separation normal
 	for i=1,#clipped,9 do
@@ -342,9 +355,7 @@ return function(collider_a,collider_b)
 		sz = sz+pnz*weight
 	end
 	
-	total_weight=math_max(total_weight,1)
-	
-	local clip_count = math_max(#clipped/3,1)
+	total_weight=math_max(total_weight,1) --Prevent divide by zero
 	
 	cx = cx/clip_count
 	cy = cy/clip_count
