@@ -8,7 +8,7 @@ FPS is a lite 3D physics engine intended to be used for game development. It is 
 This engine uses clipping for both collision detection and collision response. It does not rely on GJK/EPA or SAT.
 
 ## Screenshots
-<img src="/screenshots/MISr8lU.gif?raw=true">
+<img src="/screenshots/8sn78vd.gif?raw=true">
 
 <img src="/screenshots/0OBoqeb.gif?raw=true">
 
