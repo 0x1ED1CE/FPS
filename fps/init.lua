@@ -1,5 +1,5 @@
 --[[                                                    
-Fast Physics Solver
+Free Physics Solver
 
 MIT License
 
