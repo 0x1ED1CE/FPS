@@ -10,10 +10,12 @@ This engine uses clipping for both collision detection and collision response. I
 <img src="/screenshots/mBAgMbm.gif?raw=true">
 
 ## TODO:
-- Add friction and dampening
-- Add spatial partitions. This is suppose to be fast after all!
-- Rewrite it in C99. Originally written in Lua to be used with [LÖVE](https://github.com/love2d/love)
-- Constraints?
+- Contact manifold (contact point caching)
+- Friction & dampening
+- Sleep state
+- Spatial partitioning
+- Collision groups
+- Constraints
 
 ## License
 This software is free to use. You can modify it and redistribute it under the terms of the 
