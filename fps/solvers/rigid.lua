@@ -76,16 +76,20 @@ return function(
 	if not body_a.static then
 		local depth_ratio_a = depth*(ima/tim)*0.5
 		
-		at[4]  = at[4]-normal_x*depth_ratio_a
-		at[8]  = at[8]-normal_y*depth_ratio_a
-		at[12] = at[12]-normal_z*depth_ratio_a
+		body_a:apply_post_translation(
+			-normal_x*depth_ratio_a,
+			-normal_y*depth_ratio_a,
+			-normal_z*depth_ratio_a
+		)
 	end
 	if not body_b.static then
 		local depth_ratio_b = depth*(imb/tim)*0.5
 		
-		bt[4]  = bt[4]+normal_x*depth_ratio_b
-		bt[8]  = bt[8]+normal_y*depth_ratio_b
-		bt[12] = bt[12]+normal_z*depth_ratio_b
+		body_b:apply_post_translation(
+			normal_x*depth_ratio_b,
+			normal_y*depth_ratio_b,
+			normal_z*depth_ratio_b
+		)
 	end
 	
 	--Relative position to collision point

@@ -25,7 +25,7 @@ SOFTWARE.
 ]]
 
 local fps={
-	version="0.0.6"
+	version="0.0.7"
 }
 
 local cd=...

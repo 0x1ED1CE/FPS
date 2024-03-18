@@ -67,6 +67,7 @@ function body.new()
 		torque                 = {0,0,0},
 		velocity               = {0,0,0},
 		angular_velocity       = {0,0,0},
+		post_translation       = {0,0,0},
 		boundary               = {
 			0,0,0,
 			0,0,0
@@ -215,6 +216,12 @@ function body.apply_angular_impulse(body_,tx,ty,tz)
 	angular_velocity[1]=(angular_velocity[1]+ix)*0.99
 	angular_velocity[2]=(angular_velocity[2]+iy)*0.99
 	angular_velocity[3]=(angular_velocity[3]+iz)*0.99
+end
+
+function body.apply_post_translation(body_,x,y,z)
+	body_.post_translation[1] = body_.post_translation[1]+x
+	body_.post_translation[2] = body_.post_translation[2]+y
+	body_.post_translation[3] = body_.post_translation[3]+z
 end
 
 function body.get_static(body_)
@@ -577,6 +584,7 @@ function body.step(body_,dt)
 	local velocity         = body_.velocity
 	local angular_velocity = body_.angular_velocity
 	local mass_center      = body_.mass_center
+	local post_translation = body_.post_translation
 	
 	if not body_.sleeping and not body_.static then
 		velocity[1] = velocity[1]+force[1]/mass*dt
@@ -602,7 +610,9 @@ function body.step(body_,dt)
 			velocity[3]*dt
 		)
 		
-		local x,y,z = t14,t24,t34
+		local x = t14+post_translation[1]
+		local y = t24+post_translation[2]
+		local z = t34+post_translation[3]
 		
 		local
 		r11,r12,r13,r14,
@@ -637,6 +647,10 @@ function body.step(body_,dt)
 			t41,t42,t43,t44
 		)
 	end
+	
+	post_translation[1] = 0
+	post_translation[2] = 0
+	post_translation[3] = 0
 	
 	force[1],force[2],force[3]    = 0,0,0
 	torque[1],torque[2],torque[3] = 0,0,0

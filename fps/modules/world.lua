@@ -174,7 +174,9 @@ function world.step(world_,dt)
 				)
 			end
 		end
-		
+	end
+	
+	for _,body_ in ipairs(world_.bodies) do
 		body_a:step(dt)
 	end
 end
