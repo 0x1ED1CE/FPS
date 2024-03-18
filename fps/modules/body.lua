@@ -385,12 +385,17 @@ function body.update_inverse_inertia(body_)
 	local iix,iiy,iiz=0,0,0
 	
 	for _,collider_ in ipairs(body_.colliders) do
-		local cim=collider_:get_mass()^-1
+		local m=collider_:get_mass()
+		local cim=m^-1
 		local sx,sy,sz=collider_:get_size()
 		
 		iix=iix+(12*cim)/(sx^2+sy^2) --Treats each mass as a cube
 		iiy=iiy+(12*cim)/(sx^2+sz^2)
 		iiz=iiz+(12*cim)/(sx^2+sy^2)
+		
+		--iix=iix+((2/5)*m*(sx^2))^-1 --Or as a sphere
+		--iiy=iiy+((2/5)*m*(sy^2))^-1
+		--iiz=iiz+((2/5)*m*(sz^2))^-1
 	end
 	
 	local iit=body_.inverse_inertia_tensor
@@ -512,8 +517,6 @@ function body.raycast(body_,x,y,z,dx,dy,dz)
 end
 
 function body.resolve_collision(body_a,body_b,dt,solvers)
-	local ab,bb=body_a.boundary,body_b.boundary
-	
 	if body_a.static and body_b.static then
 		return
 	end
@@ -521,35 +524,45 @@ function body.resolve_collision(body_a,body_b,dt,solvers)
 		return
 	end
 	
+	local aa,bb=body_a.boundary,body_b.boundary
+	
 	if not (
-		ab[4]>bb[1] and
-		ab[1]<bb[4] and
-		ab[5]>bb[2] and
-		ab[2]<bb[5] and
-		ab[6]>bb[3] and
-		ab[3]<bb[6]
+		aa[4]>bb[1] and
+		aa[1]<bb[4] and
+		aa[5]>bb[2] and
+		aa[2]<bb[5] and
+		aa[6]>bb[3] and
+		aa[3]<bb[6]
 	) then
 		return
 	end
 	
 	for _,collider_a in ipairs(body_a.colliders) do
 		for _,collider_b in ipairs(body_b.colliders) do
-			local cx,cy,cz,sx,sy,sz,sd=ngc(
-				collider_a,
-				collider_b
-			)
-			
-			if sd>0 then
-				body_a.colliding = true
-				body_b.colliding = true
+			if collider_a.touching[collider_b]==nil then
+				local cx,cy,cz,sx,sy,sz,sd=ngc(
+					collider_a,
+					collider_b
+				)
 				
-				for _,solver in ipairs(solvers) do
-					solver(
-						body_a,body_b,
-						collider_a,collider_b,
-						cx,cy,cz,
-						sx,sy,sz,sd
-					)
+				if sd>0 then
+					body_a.colliding = true
+					body_b.colliding = true
+					
+					collider_a.touching[collider_b] = true
+					collider_b.touching[collider_a] = true
+					
+					for _,solver in ipairs(solvers) do
+						solver(
+							body_a,body_b,
+							collider_a,collider_b,
+							cx,cy,cz,
+							sx,sy,sz,sd
+						)
+					end
+				else
+					collider_a.touching[collider_b] = false
+					collider_b.touching[collider_a] = false
 				end
 			end
 		end

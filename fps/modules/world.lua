@@ -68,6 +68,7 @@ function world.remove_body(world_,body_)
 	body_.world=nil
 	
 	local nb=#world_.bodies
+	
 	for i=nb,1,-1 do
 		if world_.bodies[i]==body_ then
 			world_.bodies[i]  = world_.bodies[nb]
@@ -85,6 +86,7 @@ end
 
 function world.remove_solver(world_,solver_)
 	local ns=#world_.solvers
+	
 	for i=ns,1,-1 do
 		if world_.solvers[i]==solver_ then
 			world_.solvers[i]  = world_.solvers[ns]
@@ -101,13 +103,12 @@ function world.raycast(world_,x,y,z,dx,dy,dz,l,ignore)
 	local snx,sny,snz
 	local m
 	
-	for i=1,#world_.bodies do
-		local body_=world_.bodies[i]
+	for _,body_ in ipairs(world_.bodies) do
 		local ignored=false
 		
 		if ignore then
-			for j=1,#ignore do
-				if ignore[j]==body_ then
+			for _,ignore_ in ipairs(ignore) do
+				if ignore_==body_ then
 					ignored=true
 					break
 				end
@@ -155,6 +156,12 @@ function world.step(world_,dt)
 	--Resolve collisions
 	for _,body_ in ipairs(world_.bodies) do
 		body_.colliding=false
+		
+		for _,collider_a in ipairs(body_.colliders) do
+			for collider_b,_ in pairs(collider_a.touching) do
+				collider_a.touching[collider_b]=nil
+			end
+		end
 	end
 	
 	for _,body_a in ipairs(world_.bodies) do

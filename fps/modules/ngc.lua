@@ -139,12 +139,20 @@ local function clip_triangle(
 	return ax,ay,az,bx,by,bz,cx,cy,cz
 end
 
-local function clip_convex(vertexes_a,vertexes_b,clipped)
+local function clip_convex(
+	vertexes_a,
+	vertexes_b,
+	clipped
+)
+	local clip_count = 0
+	
 	for i=1,#vertexes_b do
-		clipped[#clipped+1]=vertexes_b[i]
+		clipped[clip_count+1]=vertexes_b[i]
+		
+		clip_count=clip_count+1
 	end
 	
-	local clip_limit=#clipped-#vertexes_b+1
+	local clip_limit=clip_count-#vertexes_b+1
 	
 	for a=#vertexes_a,1,-9 do
 		local aax,aay,aaz = vertexes_a[a-8],vertexes_a[a-7],vertexes_a[a-6]
@@ -160,7 +168,7 @@ local function clip_convex(vertexes_a,vertexes_b,clipped)
 			acx-aax,acy-aay,acz-aaz
 		))
 		
-		for b=#clipped,clip_limit,-9 do
+		for b=clip_count,clip_limit,-9 do
 			local
 			bax,bay,baz,
 			bbx,bby,bbz,
@@ -181,12 +189,21 @@ local function clip_convex(vertexes_a,vertexes_b,clipped)
 				for i=0,8 do
 					table_remove(clipped,b-i)
 				end
+				
+				clip_count=clip_count-9
 			end
 		end
 	end
+	
+	for i=#clipped,clip_count+1,-1 do
+		clipped[i]=nil
+	end
 end
 
-local function pull_vertexes(collider,vertexes)
+local function pull_vertexes(
+	collider,
+	vertexes
+)
 	local vertices = collider.shape.vertices
 	local faces    = collider.shape.faces
 	
@@ -281,30 +298,12 @@ end
 
 -------------------------------------------------------------------------------
 
-local prev_collider
-local vertexes_a = {}
-local vertexes_b = {}
-local clipped    = {}
+local clipped = {}
 
-return function(collider_a,collider_b)
-	for i=#clipped,1,-1 do
-		clipped[i]=nil
-	end
-	
-	if collider_a~=prev_collider then --Cache vertexes, saves computing time
-		pull_vertexes(
-			collider_a,
-			vertexes_a
-		)
-		
-		prev_collider = collider_a
-	end
-	
-	pull_vertexes(
-		collider_b,
-		vertexes_b
-	)
-	
+local function test_collision(
+	vertexes_a,
+	vertexes_b
+)
 	clip_convex(
 		vertexes_b,
 		vertexes_a,
@@ -321,7 +320,7 @@ return function(collider_a,collider_b)
 	local cx,cy,cz    = 0,0,0   --Contact point
 	local sx,sy,sz,sd = 0,0,0,0 --Separation normal
 	
-	--Approximate contact point and separation normal
+	--Calculate contact point and separation normal
 	for i=1,#clipped,9 do
 		local aax,aay,aaz = clipped[i],clipped[i+1],clipped[i+2]
 		local abx,aby,abz = clipped[i+3],clipped[i+4],clipped[i+5]
@@ -370,7 +369,7 @@ return function(collider_a,collider_b)
 	local fx,fy,fz,fd = 0,0,0,-math.huge
 	local nx,ny,nz,nd = 0,0,0,math.huge
 	
-	--Compute separation distance
+	--Calculate separation distance
 	for i=1,#clipped,3 do
 		local px,py,pz = clipped[i],clipped[i+1],clipped[i+2]
 		
@@ -390,6 +389,47 @@ return function(collider_a,collider_b)
 		sx,sy,sz
 	)
 		
+	return cx,cy,cz,sx,sy,sz,sd
+end
+
+-------------------------------------------------------------------------------
+
+local prev_collider
+local vertexes_a = {}
+local vertexes_b = {}
+
+return function(
+	collider_a,
+	collider_b
+)
+	if collider_a~=prev_collider then --Reuse vertexes from previous call
+		pull_vertexes(
+			collider_a,
+			vertexes_a
+		)
+		
+		prev_collider = collider_a
+	end
+	
+	pull_vertexes(
+		collider_b,
+		vertexes_b
+	)
+	
+	local cx,cy,cz,sx,sy,sz,sd=test_collision(
+		vertexes_a,
+		vertexes_b
+	)
+	
+	if sd==0 then --Try the other way around
+		cx,cy,cz,sx,sy,sz,sd=test_collision(
+			vertexes_b,
+			vertexes_a
+		)
+		
+		sx,sy,sz = -sx,-sy,-sz
+	end
+	
 	return cx,cy,cz,sx,sy,sz,sd
 end
 end

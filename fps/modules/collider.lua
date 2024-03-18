@@ -44,10 +44,10 @@ function collider.new()
 		body        = nil,
 		shape       = nil,
 		density     = 0.5,
-		friction    = 0.5,
+		friction    = 1,
 		restitution = 0,
 		size        = {1,1,1},
-		transform   = { --Column major
+		transform   = {
 			1,0,0,0,
 			0,1,0,0,
 			0,0,1,0,
@@ -240,7 +240,7 @@ function collider.raycast(collider_,x,y,z,dx,dy,dz)
 		t[13],t[14],t[15],t[16]
 	)
 	
-	--Convert to collider space
+	--Project to collider space
 	x,y,z=matrix4.multiply_vector3(
 		i11,i12,i13,i14,
 		i21,i22,i23,i24,
@@ -291,7 +291,7 @@ function collider.raycast(collider_,x,y,z,dx,dy,dz)
 		end
 	end
 	
-	if m then --Convert to body space
+	if m then --Project to body space
 		px,py,pz=matrix4.multiply_vector3(
 			t[1],t[2],t[3],t[4],
 			t[5],t[6],t[7],t[8],
