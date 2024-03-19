@@ -74,21 +74,21 @@ return function(
 	
 	--Seperate bodies
 	if not body_a.static then
-		local depth_ratio_a = depth*(ima/tim)*0.5
+		local depth_ratio = depth*(ima/tim)*0.5
 		
 		body_a:apply_post_translation(
-			-normal_x*depth_ratio_a,
-			-normal_y*depth_ratio_a,
-			-normal_z*depth_ratio_a
+			-normal_x*depth_ratio,
+			-normal_y*depth_ratio,
+			-normal_z*depth_ratio
 		)
 	end
 	if not body_b.static then
-		local depth_ratio_b = depth*(imb/tim)*0.5
+		local depth_ratio = depth*(imb/tim)*0.5
 		
 		body_b:apply_post_translation(
-			normal_x*depth_ratio_b,
-			normal_y*depth_ratio_b,
-			normal_z*depth_ratio_b
+			normal_x*depth_ratio,
+			normal_y*depth_ratio,
+			normal_z*depth_ratio
 		)
 	end
 	

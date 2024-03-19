@@ -58,6 +58,7 @@ local vector3_dot       = vector3.dot
 local vector3_unit      = vector3.unit
 local vector3_magnitude = vector3.magnitude
 
+local matrix4_multiply         = matrix4.multiply
 local matrix4_multiply_vector3 = matrix4.multiply_vector3
 
 -------------------------------------------------------------------------------
@@ -88,7 +89,7 @@ local function clip_triangle(
 	bx,by,bz,
 	cx,cy,cz
 )
-	local rx,ry,rz
+	local rx,ry,rz = 0,0,0
 	
 	local aex,aey,aez = vector3_unit(ax-px,ay-py,az-pz)
 	local bex,bey,bez = vector3_unit(bx-px,by-py,bz-pz)
@@ -187,7 +188,7 @@ local function clip_convex(
 				clipped[b-2],clipped[b-1],clipped[b]   = bcx,bcy,bcz
 			else --Discard vertexes outside of convex shape
 				for i=0,8 do
-					table_remove(clipped,b-i)
+					clipped[b-i] = clipped[clip_count-i]
 				end
 				
 				clip_count=clip_count-9
@@ -207,22 +208,16 @@ local function pull_vertexes(
 	local vertices = collider.shape.vertices
 	local faces    = collider.shape.faces
 	
-	local ct = collider.transform
-	local bt = collider.body.transform
+	local gt = collider.global_transform
 	
 	local sx = collider.size[1]
 	local sy = collider.size[2]
 	local sz = collider.size[3]
 	
-	local ct11,ct12,ct13,ct14 = ct[1],ct[2],ct[3],ct[4]
-	local ct21,ct22,ct23,ct24 = ct[5],ct[6],ct[7],ct[8]
-	local ct31,ct32,ct33,ct34 = ct[9],ct[10],ct[11],ct[12]
-	local ct41,ct42,ct43,ct44 = ct[13],ct[14],ct[15],ct[16]
-	
-	local bt11,bt12,bt13,bt14 = bt[1],bt[2],bt[3],bt[4]
-	local bt21,bt22,bt23,bt24 = bt[5],bt[6],bt[7],bt[8]
-	local bt31,bt32,bt33,bt34 = bt[9],bt[10],bt[11],bt[12]
-	local bt41,bt42,bt43,bt44 = bt[13],bt[14],bt[15],bt[16]
+	local t11,t12,t13,t14 = gt[1],gt[2],gt[3],gt[4]
+	local t21,t22,t23,t24 = gt[5],gt[6],gt[7],gt[8]
+	local t31,t32,t33,t34 = gt[9],gt[10],gt[11],gt[12]
+	local t41,t42,t43,t44 = gt[13],gt[14],gt[15],gt[16]
 	
 	local vertex_count = 0
 	
@@ -235,57 +230,39 @@ local function pull_vertexes(
 		vertexes[vertex_count+2],
 		vertexes[vertex_count+3]
 		=matrix4_multiply_vector3(
-			bt11,bt12,bt13,bt14,
-			bt21,bt22,bt23,bt24,
-			bt31,bt32,bt33,bt34,
-			bt41,bt42,bt43,bt44,
-			matrix4_multiply_vector3(
-				ct11,ct12,ct13,ct14,
-				ct21,ct22,ct23,ct24,
-				ct31,ct32,ct33,ct34,
-				ct41,ct42,ct43,ct44,
-				vertices[v1+1]*sx,
-				vertices[v1+2]*sy,
-				vertices[v1+3]*sz
-			)
+			t11,t12,t13,t14,
+			t21,t22,t23,t24,
+			t31,t32,t33,t34,
+			t41,t42,t43,t44,
+			vertices[v1+1]*sx,
+			vertices[v1+2]*sy,
+			vertices[v1+3]*sz
 		)
 		
 		vertexes[vertex_count+4],
 		vertexes[vertex_count+5],
 		vertexes[vertex_count+6]
 		=matrix4_multiply_vector3(
-			bt11,bt12,bt13,bt14,
-			bt21,bt22,bt23,bt24,
-			bt31,bt32,bt33,bt34,
-			bt41,bt42,bt43,bt44,
-			matrix4_multiply_vector3(
-				ct11,ct12,ct13,ct14,
-				ct21,ct22,ct23,ct24,
-				ct31,ct32,ct33,ct34,
-				ct41,ct42,ct43,ct44,
-				vertices[v2+1]*sx,
-				vertices[v2+2]*sy,
-				vertices[v2+3]*sz
-			)
+			t11,t12,t13,t14,
+			t21,t22,t23,t24,
+			t31,t32,t33,t34,
+			t41,t42,t43,t44,
+			vertices[v2+1]*sx,
+			vertices[v2+2]*sy,
+			vertices[v2+3]*sz
 		)
 		
 		vertexes[vertex_count+7],
 		vertexes[vertex_count+8],
 		vertexes[vertex_count+9]
 		=matrix4_multiply_vector3(
-			bt11,bt12,bt13,bt14,
-			bt21,bt22,bt23,bt24,
-			bt31,bt32,bt33,bt34,
-			bt41,bt42,bt43,bt44,
-			matrix4_multiply_vector3(
-				ct11,ct12,ct13,ct14,
-				ct21,ct22,ct23,ct24,
-				ct31,ct32,ct33,ct34,
-				ct41,ct42,ct43,ct44,
-				vertices[v3+1]*sx,
-				vertices[v3+2]*sy,
-				vertices[v3+3]*sz
-			)
+			t11,t12,t13,t14,
+			t21,t22,t23,t24,
+			t31,t32,t33,t34,
+			t41,t42,t43,t44,
+			vertices[v3+1]*sx,
+			vertices[v3+2]*sy,
+			vertices[v3+3]*sz
 		)
 		
 		vertex_count=vertex_count+9

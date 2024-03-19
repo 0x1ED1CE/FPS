@@ -194,9 +194,9 @@ function body.apply_linear_impulse(body_,fx,fy,fz)
 	local velocity=body_.velocity
 	local inverse_mass=body_.mass^-1
 	
-	velocity[1]=(velocity[1]+fx*inverse_mass)*0.99
-	velocity[2]=(velocity[2]+fy*inverse_mass)*0.99
-	velocity[3]=(velocity[3]+fz*inverse_mass)*0.99
+	velocity[1]=velocity[1]+fx*inverse_mass
+	velocity[2]=velocity[2]+fy*inverse_mass
+	velocity[3]=velocity[3]+fz*inverse_mass
 end
 
 function body.apply_angular_impulse(body_,tx,ty,tz)
@@ -213,9 +213,9 @@ function body.apply_angular_impulse(body_,tx,ty,tz)
 		tx,ty,tz
 	)
 	
-	angular_velocity[1]=(angular_velocity[1]+ix)*0.99
-	angular_velocity[2]=(angular_velocity[2]+iy)*0.99
-	angular_velocity[3]=(angular_velocity[3]+iz)*0.99
+	angular_velocity[1]=angular_velocity[1]+ix
+	angular_velocity[2]=angular_velocity[2]+iy
+	angular_velocity[3]=angular_velocity[3]+iz
 end
 
 function body.apply_post_translation(body_,x,y,z)
@@ -344,31 +344,17 @@ function body.update_boundary(body_)
 	local max_x,max_y,max_z	
 	
 	for _,collider_ in ipairs(body_.colliders) do
-		local ct   = collider_.transform
-		local size = collider_.size
+		collider_:update_global_transform()
 		
-		local
-		t11,t12,t13,t14,
-		t21,t22,t23,t24,
-		t31,t32,t33,t34,
-		t41,t42,t43,t44
-		=matrix4.multiply(
-			bt[1],bt[2],bt[3],bt[4],
-			bt[5],bt[6],bt[7],bt[8],
-			bt[9],bt[10],bt[11],bt[12],
-			bt[13],bt[14],bt[15],bt[16],
-			ct[1],ct[2],ct[3],ct[4],
-			ct[5],ct[6],ct[7],ct[8],
-			ct[9],ct[10],ct[11],ct[12],
-			ct[13],ct[14],ct[15],ct[16]
-		)
+		local gt   = collider_.global_transform
+		local size = collider_.size
 		
 		for z=-0.5,0.5,1 do for y=-0.5,0.5,1 do for x=-0.5,0.5,1 do
 			local vx,vy,vz=matrix4.multiply_vector3(
-				t11,t12,t13,t14,
-				t21,t22,t23,t24,
-				t31,t32,t33,t34,
-				t41,t42,t43,t44,
+				gt[1],gt[2],gt[3],gt[4],
+				gt[5],gt[6],gt[7],gt[8],
+				gt[9],gt[10],gt[11],gt[12],
+				gt[13],gt[14],gt[15],gt[16],
 				x*size[1],y*size[2],z*size[3]
 			)
 			
@@ -392,17 +378,12 @@ function body.update_inverse_inertia(body_)
 	local iix,iiy,iiz=0,0,0
 	
 	for _,collider_ in ipairs(body_.colliders) do
-		local m=collider_:get_mass()
-		local cim=m^-1
+		local cim=12*collider_:get_mass()^-1
 		local sx,sy,sz=collider_:get_size()
 		
-		iix=iix+(12*cim)/(sx^2+sy^2) --Treats each mass as a cube
-		iiy=iiy+(12*cim)/(sx^2+sz^2)
-		iiz=iiz+(12*cim)/(sx^2+sy^2)
-		
-		--iix=iix+((2/5)*m*(sx^2))^-1 --Or as a sphere
-		--iiy=iiy+((2/5)*m*(sy^2))^-1
-		--iiz=iiz+((2/5)*m*(sz^2))^-1
+		iix=iix+cim/(sx^2+sy^2) --Treats each mass as a cube
+		iiy=iiy+cim/(sx^2+sz^2)
+		iiz=iiz+cim/(sx^2+sy^2)
 	end
 	
 	local iit=body_.inverse_inertia_tensor

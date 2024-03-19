@@ -177,7 +177,7 @@ function world.step(world_,dt)
 	end
 	
 	for _,body_ in ipairs(world_.bodies) do
-		body_a:step(dt)
+		body_:step(dt)
 	end
 end
 

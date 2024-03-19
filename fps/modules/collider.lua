@@ -41,19 +41,25 @@ local math_max = math.max
 
 function collider.new()
 	return setmetatable({
-		body        = nil,
-		shape       = nil,
-		density     = 0.5,
-		friction    = 1,
-		restitution = 0,
-		size        = {1,1,1},
-		transform   = {
+		body             = nil,
+		shape            = nil,
+		density          = 0.5,
+		friction         = 1,
+		restitution      = 0,
+		size             = {1,1,1},
+		transform        = {
 			1,0,0,0,
 			0,1,0,0,
 			0,0,1,0,
 			0,0,0,1
 		},
-		touching    = {}
+		global_transform = {
+			1,0,0,0,
+			0,1,0,0,
+			0,0,1,0,
+			0,0,0,1
+		},
+		touching         = {}
 	},collider)
 end
 
@@ -165,63 +171,33 @@ function collider.get_position_offset(collider_)
 end
 
 function collider.get_world_position(collider_)
-	local
-	ct11,ct12,ct13,ct14,
-	ct21,ct22,ct23,ct24,
-	ct31,ct32,ct33,ct34,
-	ct41,ct42,ct43,ct44
-	=collider_:get_transform()
+	local gt = collider_.global_transform
 	
-	local
-	bt11,bt12,bt13,bt14,
-	bt21,bt22,bt23,bt24,
-	bt31,bt32,bt33,bt34,
-	bt41,bt42,bt43,bt44
-	=collider_.body:get_transform()
-	
-	return matrix4.multiply_vector3(
-		bt11,bt12,bt13,bt14,
-		bt21,bt22,bt23,bt24,
-		bt31,bt32,bt33,bt34,
-		bt41,bt42,bt43,bt44,
-		ct14,ct24,ct34
-	)
+	return gt[4],gt[8],gt[12]
 end
 
-function collider.get_world_vertex(collider_,vertex)
-	local vertices=collider_.shape.vertices
-	local size=collider_.size
+function collider.update_global_transform(collider_)
+	if collider_.body==nil then
+		return
+	end
 	
-	local vi=(vertex-1)*3
+	local gt = collider_.global_transform
+	local ct = collider_.transform
+	local bt = collider_.body.transform
 	
-	local
-	ct11,ct12,ct13,ct14,
-	ct21,ct22,ct23,ct24,
-	ct31,ct32,ct33,ct34,
-	ct41,ct42,ct43,ct44
-	=collider_:get_transform()
-	
-	local
-	bt11,bt12,bt13,bt14,
-	bt21,bt22,bt23,bt24,
-	bt31,bt32,bt33,bt34,
-	bt41,bt42,bt43,bt44
-	=collider_.body:get_transform()
-	
-	return matrix4.multiply_vector3(
-		bt11,bt12,bt13,bt14,
-		bt21,bt22,bt23,bt24,
-		bt31,bt32,bt33,bt34,
-		bt41,bt42,bt43,bt44,
-		matrix4.multiply_vector3(
-			ct11,ct12,ct13,ct14,
-			ct21,ct22,ct23,ct24,
-			ct31,ct32,ct33,ct34,
-			ct41,ct42,ct43,ct44,
-			vertices[vi+1]*size[1],
-			vertices[vi+2]*size[2],
-			vertices[vi+3]*size[3]
-		)
+	gt[1],gt[2],gt[3],gt[4],
+	gt[5],gt[6],gt[7],gt[8],
+	gt[9],gt[10],gt[11],gt[12],
+	gt[13],gt[14],gt[15],gt[16]
+	=matrix4.multiply(
+		bt[1],bt[2],bt[3],bt[4],
+		bt[5],bt[6],bt[7],bt[8],
+		bt[9],bt[10],bt[11],bt[12],
+		bt[13],bt[14],bt[15],bt[16],
+		ct[1],ct[2],ct[3],ct[4],
+		ct[5],ct[6],ct[7],ct[8],
+		ct[9],ct[10],ct[11],ct[12],
+		ct[13],ct[14],ct[15],ct[16]
 	)
 end
 
