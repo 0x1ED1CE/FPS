@@ -8,8 +8,6 @@ FPS is a lite 3D physics engine intended to be used for game development.
 <img src="/screenshots/mBAgMbm.gif?raw=true">
 
 ## TODO:
-- Convert to single-file library
-- Rewrite in C
 - Contact manifold (contact point caching)
 - Friction & dampening
 - Sleep state
