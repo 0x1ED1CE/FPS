@@ -3,7 +3,7 @@
 # Free Physics Solver
 ![LICENSE](https://img.shields.io/badge/LICENSE-MIT-green.svg) ![WIP](https://img.shields.io/badge/WIP-yellow.svg)
 
-FPS is a lite 3D physics engine intended to be used for game development.
+FPS is a lite 3D physics engine intended to be used for game development. Originally written in Lua and gradually porting to C.
 
 <img src="/screenshots/mBAgMbm.gif?raw=true">
 
