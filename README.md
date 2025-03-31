@@ -27,7 +27,7 @@ void main() {
 
 	// Make body A a moving box
 	fps_body_dynamic_set(body_a,FPS_TRUE);              // Body A is dynamic and can move
-	fps_body_position_set(body_a,(ice_real[3]){0,5,0}); // You can also set the transform manually with a row-major matrix
+	fps_body_position_set(body_a,(ice_real[3]){0,5,0}); // You can also use fps_body_transform_set()
 	fps_part_size_set(part_a,(fps_real[3]){1,1,1});     // Set the size to 1,1,1
 	fps_part_solid_set(part_a,FPS_TRUE);                // Make it solid so it reacts to collisions
 	fps_part_friction_set(part_a,0.7);                  // Friction 0 (slick) to 1 (doesn't slide)
