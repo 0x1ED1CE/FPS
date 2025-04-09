@@ -27,7 +27,7 @@ SOFTWARE.
 
 #define FPS_VERSION_MAJOR 1
 #define FPS_VERSION_MINOR 2
-#define FPS_VERSION_PATCH 4
+#define FPS_VERSION_PATCH 5
 
 #define FPS_TRUE  1
 #define FPS_FALSE 0
@@ -117,6 +117,10 @@ void fps_vec3_num_div(
 
 // MAT3 MODULE
 
+void fps_mat3_id(
+	fps_real a[9]
+);
+
 void fps_mat3_mov(
 	fps_real a[9],
 	fps_real b[9]
@@ -152,6 +156,10 @@ void fps_mat3_scale(
 
 // MAT4 MODULE
 
+void fps_mat4_id(
+	fps_real a[16]
+);
+
 void fps_mat4_mov(
 	fps_real a[16],
 	fps_real b[16]
@@ -174,11 +182,6 @@ void fps_mat4_mul(
 	fps_real c[16]
 );
 
-void fps_mat4_inv(
-	fps_real a[16],
-	fps_real b[16]
-);
-
 void fps_mat4_euler(
 	fps_real a[3],
 	fps_real b[16]
@@ -189,10 +192,12 @@ void fps_mat4_mat3(
 	fps_real b[9]
 );
 
-#define FPS_PART_STATE_SOLID 1
-
 typedef struct fps_part fps_part;
 typedef struct fps_body fps_body;
+
+// COLLIDER MODULE
+
+#define FPS_PART_STATE_SOLID 1
 
 typedef struct fps_part {
 	fps_body  *body;
@@ -209,8 +214,6 @@ typedef struct fps_part {
 	fps_real (*vertexes)[3];
 	fps_uint   vertex_count;
 } fps_part;
-
-// COLLIDER MODULE
 
 fps_part *fps_part_new();
 
@@ -332,12 +335,12 @@ void fps_part_boundary_update(
 	fps_part *part
 );
 
-fps_uint fps_part_raycast(
+fps_uint fps_part_raycast( // Returns boolean
 	fps_part *part,
-	fps_real  ro[3],
-	fps_real  rn[3],
-	fps_real  co[3],
-	fps_real  cn[3]
+	fps_real  ro[3], // Ray origin
+	fps_real  rn[3], // Ray direction
+	fps_real  co[3], // Surface position
+ 	fps_real  cn[3]  // Surface normal
 );
 
 // BODY MODULE
@@ -445,6 +448,11 @@ void fps_body_mass_offset_get(
 	fps_real  mass_offset[3]
 );
 
+void fps_body_mass_position_get(
+	fps_body *body,
+	fps_real  mass_position[3]
+);
+
 void fps_body_force_get(
 	fps_body *body,
 	fps_real  force[3]
@@ -537,17 +545,17 @@ void fps_body_step(
 	fps_real  dt
 );
 
-fps_part *fps_body_raycast(
+fps_part *fps_body_raycast( // Returns part
 	fps_body  *body,
-	fps_real   ro[3],
-	fps_real   rn[3],
-	fps_real   co[3],
-	fps_real   cn[3]
+	fps_real   ro[3], // Ray origin
+	fps_real   rn[3], // Ray direction
+	fps_real   co[3], // Surface position
+	fps_real   cn[3]  // Surface normal
 );
 
 // RAYCAST MODULE
 
-void fps_raycast_triangle(
+fps_uint fps_raycast_triangle(
 	fps_real ta[3],
 	fps_real tb[3],
 	fps_real tc[3],
@@ -636,6 +644,8 @@ void fps_collision_test(
 #include <malloc.h>
 #include <stdio.h>
 
+#define FPS_REAL_MAX FLT_MAX
+
 #define FPS_MIN(A,B) ((A)<(B)?(A):(B))
 #define FPS_MAX(A,B) ((A)>(B)?(A):(B))
 
@@ -645,12 +655,7 @@ void fps_collision_test(
 
 #define FPS_MAX_VERTEXES 96
 
-// Vertex buffers for calculating collisions
-static fps_real fps_buffer_a[FPS_MAX_VERTEXES][3];
-static fps_real fps_buffer_b[FPS_MAX_VERTEXES][3];
-static fps_real fps_buffer_c[FPS_MAX_VERTEXES][3];
-
-static fps_real fps_cube[36][3] = { // DO NOT CHANGE
+static fps_real fps_cube[][3] = { // DO NOT CHANGE
 	{-0.5,  0.5,  0.5},
 	{-0.5, -0.5, -0.5},
 	{-0.5, -0.5,  0.5},
@@ -782,9 +787,9 @@ void fps_vec3_unit(
 	);
 
 	if (m==0) {
-		b[0] = 0;
-		b[1] = 0;
-		b[2] = 0;
+		b[0] = 0.0;
+		b[1] = 0.0;
+		b[2] = 0.0;
 
 		return;
 	}
@@ -847,11 +852,19 @@ void fps_vec3_num_div(
 
 // MAT3 MODULE
 
-static fps_real _fps_mat3_id[9] = { // DO NOT CHANGE
-	1,0,0,
-	0,1,0,
-	0,0,1
-};
+void fps_mat3_id(
+	fps_real a[9]
+) {
+	a[0] = 1.0;
+	a[1] = 0.0;
+	a[2] = 0.0;
+	a[3] = 0.0;
+	a[4] = 1.0;
+	a[5] = 0.0;
+	a[6] = 0.0;
+	a[7] = 0.0;
+	a[8] = 1.0;
+}
 
 void fps_mat3_mov(
 	fps_real a[9],
@@ -974,20 +987,34 @@ void fps_mat3_scale(
 	fps_real c[9]
 ) {
 	fps_mat3_mul(a,(fps_real[9]){
-		b[0], 0,    0,
-		0,    b[1], 0,
-		0,    0,    b[2]
+		b[0], 0.0,  0.0,
+		0.0,  b[1], 0.0,
+		0.0,  0.0,  b[2]
 	},c);
 }
 
 // MAT4 MODULE
 
-static fps_real _fps_mat4_id[16] = { // DO NOT CHANGE
-	1,0,0,0,
-	0,1,0,0,
-	0,0,1,0,
-	0,0,0,1
-};
+void fps_mat4_id(
+	fps_real a[16]
+) {
+	a[0]  = 1.0;
+	a[1]  = 0.0;
+	a[2]  = 0.0;
+	a[3]  = 0.0;
+	a[4]  = 0.0;
+	a[5]  = 1.0;
+	a[6]  = 0.0;
+	a[7]  = 0.0;
+	a[8]  = 0.0;
+	a[9]  = 0.0;
+	a[10] = 1.0;
+	a[11] = 0.0;
+	a[12] = 0.0;
+	a[13] = 0.0;
+	a[14] = 0.0;
+	a[15] = 1.0;
+}
 
 void fps_mat4_mov(
 	fps_real a[16],
@@ -1108,64 +1135,6 @@ void fps_mat4_mul(
 	c[15] = a30*b03+a31*b13+a32*b23+a33*b33;
 }
 
-void fps_mat4_inv(
-	fps_real a[16],
-	fps_real b[16]
-) {
-	fps_real a00 = a[0];
-	fps_real a01 = a[1];
-	fps_real a02 = a[2];
-	fps_real a03 = a[3];
-	fps_real a10 = a[4];
-	fps_real a11 = a[5];
-	fps_real a12 = a[6];
-	fps_real a13 = a[7];
-	fps_real a20 = a[8];
-	fps_real a21 = a[9];
-	fps_real a22 = a[10];
-	fps_real a23 = a[11];
-	fps_real a30 = a[12];
-	fps_real a31 = a[13];
-	fps_real a32 = a[14];
-	fps_real a33 = a[15];
-
-	fps_real b00 =  a11*a22*a33-a11*a23*a32-a21*a12*a33+a21*a13*a32+a31*a12*a23-a31*a13*a22;
-	fps_real b01 = -a01*a22*a33+a01*a23*a32+a21*a02*a33-a21*a03*a32-a31*a02*a23+a31*a03*a22;
-	fps_real b02 =  a01*a12*a33-a01*a13*a32-a11*a02*a33+a11*a03*a32+a31*a02*a13-a31*a03*a12;
-	fps_real b03 = -a01*a12*a23+a01*a13*a22+a11*a02*a23-a11*a03*a22-a21*a02*a13+a21*a03*a12;
-	fps_real b10 = -a10*a22*a33+a10*a23*a32+a20*a12*a33-a20*a13*a32-a30*a12*a23+a30*a13*a22;
-	fps_real b11 =  a00*a22*a33-a00*a23*a32-a20*a02*a33+a20*a03*a32+a30*a02*a23-a30*a03*a22;
-	fps_real b12 = -a00*a12*a33+a00*a13*a32+a10*a02*a33-a10*a03*a32-a30*a02*a13+a30*a03*a12;
-	fps_real b13 =  a00*a12*a23-a00*a13*a22-a10*a02*a23+a10*a03*a22+a20*a02*a13-a20*a03*a12;
-	fps_real b20 =  a10*a21*a33-a10*a23*a31-a20*a11*a33+a20*a13*a31+a30*a11*a23-a30*a13*a21;
-	fps_real b21 = -a00*a21*a33+a00*a23*a31+a20*a01*a33-a20*a03*a31-a30*a01*a23+a30*a03*a21;
-	fps_real b22 =  a00*a11*a33-a00*a13*a31-a10*a01*a33+a10*a03*a31+a30*a01*a13-a30*a03*a11;
-	fps_real b23 = -a00*a11*a23+a00*a13*a21+a10*a01*a23-a10*a03*a21-a20*a01*a13+a20*a03*a11;
-	fps_real b30 = -a10*a21*a32+a10*a22*a31+a20*a11*a32-a20*a12*a31-a30*a11*a22+a30*a12*a21;
-	fps_real b31 =  a00*a21*a32-a00*a22*a31-a20*a01*a32+a20*a02*a31+a30*a01*a22-a30*a02*a21;
-	fps_real b32 = -a00*a11*a32+a00*a12*a31+a10*a01*a32-a10*a02*a31-a30*a01*a12+a30*a02*a11;
-	fps_real b33 =  a00*a11*a22-a00*a12*a21-a10*a01*a22+a10*a02*a21+a20*a01*a12-a20*a02*a11;
-
-	fps_real det = 1.0/(a00*b00+a01*b10+a02*b20+a03*b30);
-
-	b[0]  = b00*det;
-	b[1]  = b01*det;
-	b[2]  = b02*det;
-	b[3]  = b03*det;
-	b[4]  = b10*det;
-	b[5]  = b11*det;
-	b[6]  = b12*det;
-	b[7]  = b13*det;
-	b[8]  = b20*det;
-	b[9]  = b21*det;
-	b[10] = b22*det;
-	b[11] = b23*det;
-	b[12] = b30*det;
-	b[13] = b31*det;
-	b[14] = b32*det;
-	b[15] = b33*det;
-}
-
 void fps_mat4_euler(
 	fps_real a[3],
 	fps_real b[16]
@@ -1201,10 +1170,10 @@ void fps_mat4_scale(
 	fps_real c[16]
 ) {
 	fps_mat4_mul(a,(fps_real[16]){
-		b[0], 0,    0,    0,
-		0,    b[1], 0,    0,
-		0,    0,    b[2], 0,
-		0,    0,    0,    1
+		b[0], 0.0,  0.0,  0.0,
+		0.0,  b[1], 0.0,  0.0,
+		0.0,  0.0,  b[2], 0.0,
+		0.0,  0.0,  0.0,  1.0
 	},c);
 }
 
@@ -1230,7 +1199,7 @@ fps_part *fps_part_new() {
 
 	if (part==NULL) return NULL;
 
-	fps_mat4_mov(_fps_mat4_id,part->offset);
+	fps_mat4_id(part->offset);
 
 	part->vertexes     = fps_cube;
 	part->vertex_count = 36;
@@ -1451,14 +1420,18 @@ void fps_part_transform_update(
 
 	if (body==NULL) return;
 
-	fps_mat4_mul(body->transform,part->offset,part->transform);
+	fps_mat4_mul(
+		body->transform,
+		part->offset,
+		part->transform
+	);
 }
 
 void fps_part_boundary_update(
 	fps_part *part
 ) {
-	fps_real min[3] = {FLT_MAX,FLT_MAX,FLT_MAX};
-	fps_real max[3] = {-FLT_MAX,-FLT_MAX,-FLT_MAX};
+	fps_real min[3] = {FPS_REAL_MAX,FPS_REAL_MAX,FPS_REAL_MAX};
+	fps_real max[3] = {-FPS_REAL_MAX,-FPS_REAL_MAX,-FPS_REAL_MAX};
 
 	for (fps_real z=-0.5; z<=0.5; z++) {
 		for (fps_real y=-0.5; y<=0.5; y++) {
@@ -1490,16 +1463,12 @@ fps_uint fps_part_raycast(
 	fps_real  co[3],
 	fps_real  cn[3]
 ) {
-	cn[0] = 0;
-	cn[1] = 0;
-	cn[2] = 0;
-
 	if (!fps_ray_aabb_test(
 		part->boundary[0],
 		part->boundary[1],
 		ro,
 		rn
-	)) return 0;
+	)) return FPS_FALSE;
 
 	for (fps_uint i=0; i<part->vertex_count; i+=3) {
 		fps_real ta[3];
@@ -1514,16 +1483,14 @@ fps_uint fps_part_raycast(
 		fps_mat4_vec3_mul(part->transform,tb,tb);
 		fps_mat4_vec3_mul(part->transform,tc,tc);
 
-		fps_raycast_triangle(ta,tb,tc,ro,rn,co,cn);
-
-		if (
-			cn[0]!=0 ||
-			cn[1]!=0 ||
-			cn[2]!=0
-		) return 1;
+		if (fps_raycast_triangle(
+			ta,tb,tc,
+			ro,rn,
+			co,cn
+		)) return FPS_TRUE;
 	}
 
-	return 0;
+	return FPS_FALSE;
 }
 
 // BODY MODULE
@@ -1533,8 +1500,8 @@ fps_body *fps_body_new() {
 
 	if (body==NULL) return NULL;
 
-	fps_mat4_mov(_fps_mat4_id,body->transform);
-	fps_mat3_mov(_fps_mat3_id,body->inverse_inertia);
+	fps_mat4_id(body->transform);
+	fps_mat3_id(body->inverse_inertia);
 
 	return body;
 }
@@ -1738,6 +1705,17 @@ void fps_body_mass_offset_get(
 	fps_vec3_mov(body->mass_offset,mass_offset);
 }
 
+void fps_body_mass_position_get(
+	fps_body *body,
+	fps_real  mass_position[3]
+) {
+	fps_mat4_vec3_mul(
+		body->transform,
+		body->mass_offset,
+		mass_position
+	);
+}
+
 void fps_body_force_get(
 	fps_body *body,
 	fps_real  force[3]
@@ -1887,12 +1865,13 @@ void fps_body_angular_impulse_apply(
 void fps_body_mass_update(
 	fps_body *body
 ) {
-	fps_real total_mass = 0;
-	fps_real center[3]  = {0,0,0};
-	fps_real ii[3]      = {0,0,0}; // Inverse inertia
+	fps_real total_mass     = 0.0;
+	fps_real mass_offset[3] = {0.0,0.0,0.0};
+	fps_real ii[3]          = {0.0,0.0,0.0};
 
 	fps_part *part = body->part;
 
+	// Calculate center of mass and inertia tensor
 	while (part!=NULL) {
 		fps_real offset[3];
 		fps_real size[3];
@@ -1901,38 +1880,41 @@ void fps_body_mass_update(
 		fps_part_size_get(part,size);
 
 		fps_real mass = fps_part_mass_get(part);
+		total_mass   += mass;
 
 		fps_vec3_num_mul(offset,mass,offset);
-		fps_vec3_add(center,offset,center);
+		fps_vec3_add(mass_offset,offset,mass_offset);
 
-		total_mass+=mass;
-
-		fps_real im = 12.0*(1.0/mass);
-
+		// TODO: Use parallel axis theorem
 		size[0] *= size[0];
 		size[1] *= size[1];
 		size[2] *= size[2];
 
-		ii[0] += im/(size[0]+size[1]);
-		ii[1] += im/(size[0]+size[2]);
-		ii[2] += im/(size[0]+size[1]);
+		ii[0] += mass*(size[1]+size[2])/12.0;
+		ii[1] += mass*(size[2]+size[0])/12.0;
+		ii[2] += mass*(size[0]+size[1])/12.0;
 
 		part = part->next;
 	}
 
 	body->mass = total_mass;
 
-	fps_vec3_num_div(center,total_mass,body->mass_offset);
+	fps_vec3_num_div(
+		mass_offset,
+		total_mass,
+		body->mass_offset
+	);
 
-	fps_real t[9];
-	fps_real it[9]; // Inverse rotation
-	fps_real ts[9];
-
-	fps_mat4_mat3(body->transform,t);
-	fps_mat3_inv(t,it);
-
-	fps_mat3_scale(t,ii,ts);
-	fps_mat3_mul(ts,it,body->inverse_inertia);
+	fps_mat3_id(body->inverse_inertia);
+	fps_mat3_scale(
+		body->inverse_inertia,
+		ii,
+		body->inverse_inertia
+	);
+	fps_mat3_inv(
+		body->inverse_inertia,
+		body->inverse_inertia
+	);
 }
 
 void fps_body_boundary_update(
@@ -1947,8 +1929,8 @@ void fps_body_boundary_update(
 		return;
 	}
 
-	fps_real min[3] = {FLT_MAX,FLT_MAX,FLT_MAX};
-	fps_real max[3] = {-FLT_MAX,-FLT_MAX,-FLT_MAX};
+	fps_real min[3] = {FPS_REAL_MAX,FPS_REAL_MAX,FPS_REAL_MAX};
+	fps_real max[3] = {-FPS_REAL_MAX,-FPS_REAL_MAX,-FPS_REAL_MAX};
 
 	while (part!=NULL) {
 		min[0] = FPS_MIN(part->boundary[0][0],min[0]);
@@ -1964,6 +1946,8 @@ void fps_body_boundary_update(
 
 	fps_vec3_mov(min,body->boundary[0]);
 	fps_vec3_mov(max,body->boundary[1]);
+
+	fps_body_sleeping_set(body,FPS_FALSE);
 }
 
 void fps_body_part_add(
@@ -2031,6 +2015,8 @@ void fps_body_part_remove(
 fps_part *fps_body_part_get(
 	fps_body *body
 ) {
+	if (body==NULL) return NULL;
+
 	return body->part;
 }
 
@@ -2073,36 +2059,31 @@ void fps_body_step(
 		body->transform[3]  += body->post_translation[0];
 		body->transform[7]  += body->post_translation[1];
 		body->transform[11] += body->post_translation[2];
+		
+		fps_real center_of_mass[3];
 
-		// Remove translation from transform
-		fps_real position[3] = {
-			body->transform[3],
-			body->transform[7],
-			body->transform[11]
-		};
+		fps_body_mass_position_get(
+			body,
+			center_of_mass
+		);
 
-		body->transform[3]  = 0;
-		body->transform[7]  = 0;
-		body->transform[11] = 0;
+		// Use center of mass as origin
+		body->transform[3]  -= center_of_mass[0];
+		body->transform[7]  -= center_of_mass[1];
+		body->transform[11] -= center_of_mass[2];
 
-		// Convert rotation to matrix
+		// Apply rotation
+		fps_real orientation[16];
 		fps_real delta_rotation[3] = {
 			body->angular_velocity[0]*dt,
 			body->angular_velocity[1]*dt,
 			body->angular_velocity[2]*dt,
 		};
-		fps_real orientation[16];
-
-		fps_mat4_mov(
-			_fps_mat4_id,
-			orientation
-		);
+		fps_mat4_id(orientation);
 		fps_mat4_euler(
 			delta_rotation,
 			orientation
 		);
-
-		// Apply rotation to transform
 		fps_mat4_mul(
 			orientation,
 			body->transform,
@@ -2110,9 +2091,9 @@ void fps_body_step(
 		);
 
 		// Restore translation to transform
-		body->transform[3]  = position[0];
-		body->transform[7]  = position[1];
-		body->transform[11] = position[2];
+		body->transform[3]  += center_of_mass[0];
+		body->transform[7]  += center_of_mass[1];
+		body->transform[11] += center_of_mass[2];
 
 		// Update part
 		fps_part *part = body->part;
@@ -2126,19 +2107,25 @@ void fps_body_step(
 
 		// Update boundary
 		fps_body_boundary_update(body);
+
+		// Sleep if body isn't moving much
+		if (
+			fps_vec3_mag(body->velocity)<0.5 &&
+			fps_vec3_mag(body->angular_velocity)<0.5
+		) fps_body_sleeping_set(body,FPS_TRUE);
 	}
 
-	body->force[0] = 0;
-	body->force[1] = 0;
-	body->force[2] = 0;
+	body->force[0] = 0.0;
+	body->force[1] = 0.0;
+	body->force[2] = 0.0;
 
-	body->torque[0] = 0;
-	body->torque[1] = 0;
-	body->torque[2] = 0;
+	body->torque[0] = 0.0;
+	body->torque[1] = 0.0;
+	body->torque[2] = 0.0;
 
-	body->post_translation[0] = 0;
-	body->post_translation[1] = 0;
-	body->post_translation[2] = 0;
+	body->post_translation[0] = 0.0;
+	body->post_translation[1] = 0.0;
+	body->post_translation[2] = 0.0;
 }
 
 fps_part *fps_body_raycast(
@@ -2148,10 +2135,6 @@ fps_part *fps_body_raycast(
 	fps_real   co[3],
 	fps_real   cn[3]
 ) {
-	cn[0] = 0;
-	cn[1] = 0;
-	cn[2] = 0;
-
 	if (!fps_ray_aabb_test(
 		body->boundary[0],
 		body->boundary[1],
@@ -2159,7 +2142,7 @@ fps_part *fps_body_raycast(
 		rn
 	)) return NULL;
 
-	fps_real cd = FLT_MAX;
+	fps_real cd = FPS_REAL_MAX;
 
 	fps_part *current = body->part;
 	fps_part *target  = NULL;
@@ -2176,10 +2159,9 @@ fps_part *fps_body_raycast(
 			ccn
 		)) {
 			fps_real cco_ro[3];
-			fps_real ccd;
 
 			fps_vec3_sub(cco,ro,cco_ro);
-			ccd = fps_vec3_mag(cco_ro);
+			fps_real ccd = fps_vec3_mag(cco_ro);
 
 			if (ccd<cd) {
 				fps_vec3_mov(cco,co);
@@ -2198,7 +2180,7 @@ fps_part *fps_body_raycast(
 
 // RAYCAST MODULE
 
-void fps_raycast_triangle(
+fps_uint fps_raycast_triangle(
 	fps_real ta[3],
 	fps_real tb[3],
 	fps_real tc[3],
@@ -2207,10 +2189,6 @@ void fps_raycast_triangle(
 	fps_real co[3],
 	fps_real cn[3]
 ) {
-	cn[0] = 0;
-	cn[1] = 0;
-	cn[2] = 0;
-
 	fps_real ba[3];
 	fps_real ca[3];
 	fps_real tn[3];
@@ -2224,7 +2202,7 @@ void fps_raycast_triangle(
 	fps_real tn_rn_dot = fps_vec3_dot(tn,rn);
 
 	// Ray direction does not face triangle
-	if (tn_rn_dot>=0) return;
+	if (tn_rn_dot>=0.0) return FPS_FALSE;
 
 	// Calculate surface point
 	fps_real tn_ta_dot = fps_vec3_dot(tn,ta);
@@ -2233,7 +2211,7 @@ void fps_raycast_triangle(
 	fps_real t = (tn_ta_dot-tn_ro_dot)/tn_rn_dot;
 
 	// Triangle is behind ray
-	if (t<=0) return;
+	if (t<=0.0) return FPS_FALSE;
 
 	co[0] = ro[0]+rn[0]*t;
 	co[1] = ro[1]+rn[1]*t;
@@ -2255,13 +2233,15 @@ void fps_raycast_triangle(
 	fps_vec3_cross(b,c,u);
 	fps_vec3_cross(c,a,v);
 
-	if (fps_vec3_dot(u,v)<0) return;
+	if (fps_vec3_dot(u,v)<0.0) return FPS_FALSE;
 
 	fps_vec3_cross(a,b,w);
 
-	if (fps_vec3_dot(u,w)<0) return;
+	if (fps_vec3_dot(u,w)<0.0) return FPS_FALSE;
 
 	fps_vec3_mov(tn,cn);
+
+	return FPS_TRUE;
 }
 
 // AABB MODULE
@@ -2309,7 +2289,7 @@ fps_uint fps_ray_aabb_test(
 		t_max[1]      = temp;
 	}
 
-	if (t_min[0]>t_max[1] || t_min[1]>t_max[0]) return 0;
+	if (t_min[0]>t_max[1] || t_min[1]>t_max[0]) return FPS_FALSE;
 	if (t_min[1]>t_min[0]) t_min[0] = t_min[1];
 	if (t_max[1]<t_max[0]) t_max[0] = t_max[1];
 
@@ -2322,11 +2302,9 @@ fps_uint fps_ray_aabb_test(
 		t_max[2]      = temp;
 	}
 
-	if (t_min[0]>t_max[2] || t_min[2]>t_max[0]) return 0;
-	// if (t_min[2]>t_min[0]) t_min[0] = t_min[2];
-	// if (t_max[2]<t_max[0]) t_max[0] = t_min[2];
+	if (t_min[0]>t_max[2] || t_min[2]>t_max[0]) return FPS_FALSE;
 
-	return 1;
+	return FPS_TRUE;
 }
 
 // NGC MODULE
@@ -2376,21 +2354,21 @@ fps_uint fps_ngc_clip_triangle(
 	fps_real tb_pn_dot = fps_vec3_dot(tb_po,pn);
 	fps_real tc_pn_dot = fps_vec3_dot(tc_po,pn);
 
-	// Find vertex furthest behind plane to use as origin
-	if (ta_pn_dot<0.0) {
-		if (tb_pn_dot>0.01) fps_ngc_clip_edge(po,pn,ta,tb);
-		if (tc_pn_dot>0.01) fps_ngc_clip_edge(po,pn,ta,tc);
-	} else if (tb_pn_dot<0.0) {
-		if (ta_pn_dot>0.01) fps_ngc_clip_edge(po,pn,tb,ta);
-		if (tc_pn_dot>0.01) fps_ngc_clip_edge(po,pn,tb,tc);
-	} else if (tc_pn_dot<0.0) {
-		if (ta_pn_dot>0.01) fps_ngc_clip_edge(po,pn,tc,ta);
-		if (tb_pn_dot>0.01) fps_ngc_clip_edge(po,pn,tc,tb);
+	// Find furthest vertex behind plane to use as origin
+	if (ta_pn_dot<=0.0) {
+		if (tb_pn_dot>0.001) fps_ngc_clip_edge(po,pn,ta,tb);
+		if (tc_pn_dot>0.001) fps_ngc_clip_edge(po,pn,ta,tc);
+	} else if (tb_pn_dot<=0.0) {
+		if (ta_pn_dot>0.001) fps_ngc_clip_edge(po,pn,tb,ta);
+		if (tc_pn_dot>0.001) fps_ngc_clip_edge(po,pn,tb,tc);
+	} else if (tc_pn_dot<=0.0) {
+		if (ta_pn_dot>0.001) fps_ngc_clip_edge(po,pn,tc,ta);
+		if (tb_pn_dot>0.001) fps_ngc_clip_edge(po,pn,tc,tb);
 	} else {
-		return 1;
+		return FPS_TRUE;
 	}
 
-	return 0;
+	return FPS_FALSE;
 }
 
 void fps_ngc_clip_convex(
@@ -2401,7 +2379,7 @@ void fps_ngc_clip_convex(
 	fps_uint  vb_len,  // Vertexes B length
 	fps_uint *vc_len   // Clipped length
 ) {
-	for (fps_uint i=0; i<*vc_len; i++) {
+	for (fps_uint i=0; i<vb_len; i++) {
 		fps_vec3_mov(vb[i],vc[i]);
 	}
 
@@ -2423,7 +2401,7 @@ void fps_ngc_clip_convex(
 				vc[b-3],
 				vc[b-2],
 				vc[b-1]
-			)) { // Discard
+			)) { // Discard triangle
 				fps_vec3_mov(vc[*vc_len-3],vc[b-3]);
 				fps_vec3_mov(vc[*vc_len-2],vc[b-2]);
 				fps_vec3_mov(vc[*vc_len-1],vc[b-1]);
@@ -2450,8 +2428,8 @@ fps_real fps_ngc_test_convex(
 	sn[2] = 0.0;
 
 	// Clip intersecting convex volumes
-	fps_uint vc_len   = vb_len;
-	fps_real (*vc)[3] = fps_buffer_c;
+	static fps_real vc[FPS_MAX_VERTEXES][3];
+	fps_uint vc_len = vb_len;
 
 	fps_ngc_clip_convex(
 		va,
@@ -2486,8 +2464,8 @@ fps_real fps_ngc_test_convex(
 	fps_vec3_unit(sn,sn);
 
 	// Calculate separation distance
-	fps_real fd = -FLT_MAX;
-	fps_real nd = FLT_MAX;
+	fps_real fd = -FPS_REAL_MAX;
+	fps_real nd = FPS_REAL_MAX;
 
 	for (fps_uint i=0; i<vc_len; i++) {
 		fps_real d = fps_vec3_dot(vc[i],sn);
@@ -2510,41 +2488,15 @@ void fps_collision_resolve(
 	fps_real  sn[3],
 	fps_real  sd
 ) {
-	if (sd==0.0) return;
-	
+	if (sd<0.001) return;
+
 	fps_uint dynamic_a = fps_body_dynamic_get(body_a);
 	fps_uint dynamic_b = fps_body_dynamic_get(body_b);
 
-	fps_real a_im = (1.0/body_a->mass)*(dynamic_a?1.0:0.0);
-	fps_real b_im = (1.0/body_b->mass)*(dynamic_b?1.0:0.0);
+	fps_real a_im = 1.0/body_a->mass;
+	fps_real b_im = 1.0/body_b->mass;
 	fps_real t_im = a_im+b_im;
-
-	if (dynamic_a) {
-		fps_real depth_ratio = sd*(a_im/t_im)*0.5;
-
-		fps_body_translation_apply(
-			body_a,
-			(fps_real[3]){
-				sn[0]*depth_ratio,
-				sn[1]*depth_ratio,
-				sn[2]*depth_ratio
-			}
-		);
-	}
-
-	if (dynamic_b) {
-		fps_real depth_ratio = -sd*(b_im/t_im)*0.5;
-
-		fps_body_translation_apply(
-			body_b,
-			(fps_real[3]){
-				sn[0]*depth_ratio,
-				sn[1]*depth_ratio,
-				sn[2]*depth_ratio
-			}
-		);
-	}
-
+	
 	fps_real r = part_a->restitution*part_b->restitution;
 	fps_real f = part_a->friction*part_b->friction;
 
@@ -2563,11 +2515,44 @@ void fps_collision_resolve(
 	fps_body_angular_velocity_get(body_b,bav);
 
 	// Relative offset
-	fps_real ar[3];
-	fps_real br[3];
+	fps_real ar[3] = {cp[0],cp[1],cp[2]};
+	fps_real br[3] = {cp[0],cp[1],cp[2]};
 
-	fps_body_position_get(body_a,ar);
-	fps_body_position_get(body_b,br);
+	if (dynamic_a) {
+		fps_real depth_ratio = sd*(a_im/t_im);
+
+		fps_body_sleeping_set(
+			body_a,
+			FPS_FALSE
+		);
+		fps_body_translation_apply(
+			body_a,
+			(fps_real[3]){
+				sn[0]*depth_ratio,
+				sn[1]*depth_ratio,
+				sn[2]*depth_ratio
+			}
+		);
+		fps_body_mass_position_get(body_a,ar);
+	}
+
+	if (dynamic_b) {
+		fps_real depth_ratio = -sd*(b_im/t_im);
+
+		fps_body_sleeping_set(
+			body_b,
+			FPS_FALSE
+		);
+		fps_body_translation_apply(
+			body_b,
+			(fps_real[3]){
+				sn[0]*depth_ratio,
+				sn[1]*depth_ratio,
+				sn[2]*depth_ratio
+			}
+		);
+		fps_body_mass_position_get(body_b,br);
+	}
 
 	fps_vec3_sub(cp,ar,ar);
 	fps_vec3_sub(cp,br,br);
@@ -2653,7 +2638,7 @@ void fps_collision_resolve(
 	fps_vec3_num_mul(sn,i,sn);
 	fps_vec3_sub(rv,sn,sn);
 
-	if (fps_vec3_mag(sn)>0.001) {
+	if (fps_vec3_mag(sn)>0.0) {
 		fps_vec3_unit(sn,sn);
 
 		// Impulse
@@ -2699,10 +2684,10 @@ void fps_collision_test(
 	fps_body *body_b
 ) {
 	if ((
-		!fps_body_dynamic_get(body_a) && 
-		!fps_body_dynamic_get(body_b)
-	) || (
-		fps_body_sleeping_get(body_a) &&
+		!fps_body_dynamic_get(body_a) ||
+		fps_body_sleeping_get(body_a)
+	) && (
+		!fps_body_dynamic_get(body_b) ||
 		fps_body_sleeping_get(body_b)
 	)) return;
 
@@ -2713,8 +2698,9 @@ void fps_collision_test(
 		body_b->boundary[1]
 	)) return;
 
-	fps_real (*va)[3] = NULL;
-	fps_real (*vb)[3] = NULL;
+	static fps_real va[FPS_MAX_VERTEXES][3];
+	static fps_real vb[FPS_MAX_VERTEXES][3];
+	fps_uint va_fill = FPS_FALSE;
 
 	fps_part *part_a = fps_body_part_get(body_a);
 
@@ -2728,8 +2714,8 @@ void fps_collision_test(
 				part_b->boundary[0],
 				part_b->boundary[1]
 			)) {
-				if (va==NULL) {
-					va = fps_buffer_a;
+				if (va_fill==FPS_FALSE) {
+					va_fill=FPS_TRUE;
 
 					for (fps_uint i=0; i<part_a->vertex_count; i++) {
 						fps_vec3_mul(
@@ -2744,8 +2730,6 @@ void fps_collision_test(
 						);
 					}
 				}
-
-				vb = fps_buffer_b;
 
 				for (fps_uint i=0; i<part_b->vertex_count; i++) {
 					fps_vec3_mul(
